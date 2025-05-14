@@ -1,0 +1,164 @@
+import React, { useState } from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+
+export default function App() {
+  const [donations, setDonations] = useState([]);
+  const [formData, setFormData] = useState({
+    tipo: "",
+    descripcion: "",
+    estado: "",
+    zona: "",
+    ciudad: "",
+    latitud: "",
+    longitud: "",
+  });
+  const [rankingField, setRankingField] = useState("ciudad");
+
+  const handleChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+  };
+
+  const handleAddDonation = () => {
+    const { tipo, descripcion, estado, zona, ciudad, latitud, longitud } = formData;
+    if (!tipo || !descripcion || !estado || !zona || !ciudad || !latitud || !longitud) {
+      alert("Por favor, completa todos los campos correctamente incluyendo latitud y longitud.");
+      return;
+    }
+    setDonations([...donations, { ...formData, latitud: parseFloat(latitud), longitud: parseFloat(longitud) }]);
+    setFormData({ tipo: "", descripcion: "", estado: "", zona: "", ciudad: "", latitud: "", longitud: "" });
+  };
+
+  const getRanking = () => {
+    const count = {};
+    donations.forEach((d) => {
+      const key = d[rankingField];
+      count[key] = (count[key] || 0) + 1;
+    });
+    return Object.entries(count).sort((a, b) => b[1] - a[1]);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-100 to-blue-200 text-gray-900 p-6 font-sans">
+      <h1 className="text-5xl font-bold text-center mb-2 tracking-wide">CuidáTuComunidad 🌍</h1>
+      <p className="text-center mb-6 text-sm font-medium text-gray-700">Una solución solidaria desarrollada por <span className="font-semibold text-green-600">Innovatech</span></p>
+
+      <Tabs defaultValue="donaciones" className="w-full max-w-5xl mx-auto">
+        <TabsList className="grid grid-cols-3 mb-6 rounded-xl shadow-md overflow-hidden">
+          <TabsTrigger value="donaciones">Donaciones</TabsTrigger>
+          <TabsTrigger value="ranking">Ranking</TabsTrigger>
+          <TabsTrigger value="mapa">Mapa</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="donaciones">
+          <Card className="rounded-xl shadow-lg">
+            <CardContent className="space-y-4 py-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label>Tipo</Label>
+                  <Input value={formData.tipo} onChange={(e) => handleChange("tipo", e.target.value)} placeholder="Ej: Alimento" required />
+                </div>
+                <div>
+                  <Label>Descripción</Label>
+                  <Input value={formData.descripcion} onChange={(e) => handleChange("descripcion", e.target.value)} placeholder="Ej: Fideos, arroz..." required />
+                </div>
+                <div>
+                  <Label>Estado</Label>
+                  <Select value={formData.estado} onValueChange={(value) => handleChange("estado", value)}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nuevo">Nuevo</SelectItem>
+                      <SelectItem value="usado">Usado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Zona</Label>
+                  <Input value={formData.zona} onChange={(e) => handleChange("zona", e.target.value)} placeholder="Ej: Norte" required />
+                </div>
+                <div>
+                  <Label>Ciudad</Label>
+                  <Input value={formData.ciudad} onChange={(e) => handleChange("ciudad", e.target.value)} placeholder="Ej: Bilbao" required />
+                </div>
+                <div>
+                  <Label>Latitud</Label>
+                  <Input value={formData.latitud} onChange={(e) => handleChange("latitud", e.target.value)} placeholder="Ej: 43.263" required />
+                </div>
+                <div>
+                  <Label>Longitud</Label>
+                  <Input value={formData.longitud} onChange={(e) => handleChange("longitud", e.target.value)} placeholder="Ej: -2.935" required />
+                </div>
+              </div>
+              <Button className="mt-4 bg-green-600 hover:bg-green-700" onClick={handleAddDonation}>Agregar Donación</Button>
+
+              <h2 className="text-2xl font-semibold mt-8">Listado de Donaciones</h2>
+              {donations.length === 0 ? (
+                <p className="italic text-gray-600">Aún no hay donaciones registradas.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {donations.map((d, i) => (
+                    <li key={i} className="border border-gray-200 p-3 rounded-lg bg-white shadow-sm">
+                      <strong>{d.tipo}</strong> - {d.descripcion} (<em>{d.estado}</em>) | Zona: {d.zona}, Ciudad: {d.ciudad}, Lat: {d.latitud}, Lng: {d.longitud}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ranking">
+          <Card className="rounded-xl shadow-lg">
+            <CardContent className="space-y-4 py-8">
+              <div>
+                <Label className="mb-2 block">Ordenar por:</Label>
+                <Select value={rankingField} onValueChange={setRankingField}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar campo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="zona">Zona</SelectItem>
+                    <SelectItem value="ciudad">Ciudad</SelectItem>
+                    <SelectItem value="tipo">Tipo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <ul className="space-y-3">
+                {getRanking().map(([key, value], i) => (
+                  <li key={i} className="border p-3 rounded-md bg-white shadow-sm">
+                    <strong>{key}</strong>: {value} registro(s)
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="mapa">
+          <Card className="rounded-xl shadow-lg">
+            <CardContent className="py-6">
+              <h2 className="text-2xl font-semibold mb-4">Mapa Interactivo</h2>
+              <MapContainer center={[43.263, -2.935]} zoom={10} style={{ height: "500px", width: "100%" }}>
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution="&copy; OpenStreetMap contributors"
+                />
+                {donations.map((d, i) => (
+                  <Marker key={i} position={[d.latitud, d.longitud]}>
+                    <Popup>
+                      <strong>{d.tipo}</strong><br />{d.descripcion}<br /><em>{d.estado}</em><br />{d.zona}, {d.ciudad}<br />Lat: {d.latitud}, Lng: {d.longitud}
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
